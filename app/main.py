@@ -7,4 +7,8 @@ app = FastAPI(title="CareMinder Backend")
 def health_check():
     return {"status": "ok"}
 
+@app.get("/")
+def root():
+    return {"message": "CareMinder backend running"}
+
 app.include_router(biomarker_router)
