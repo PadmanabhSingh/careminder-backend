@@ -8,7 +8,7 @@ app = FastAPI(title="CareMinder Backend")
 
 @app.get("/")
 def root():
-    return {"message": "CareMinder backend is running wild , Ni hao world!"}
+    return {"message": "daphne what song were you singing"}
 
 
 @app.get("/health")
