@@ -1,16 +1,15 @@
-from fastapi import Header, HTTPException
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
-import os
-from dotenv import load_dotenv
 
-load_dotenv(".env")
+security = HTTPBearer()
 
 
-def get_current_user_id(authorization: str = Header(...)) -> str:
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid authorization header")
+def get_current_user_id(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+) -> str:
 
-    token = authorization.split(" ", 1)[1]
+    token = credentials.credentials
 
     try:
         payload = jwt.decode(token, options={"verify_signature": False})
