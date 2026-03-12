@@ -2,6 +2,8 @@ from fastapi import APIRouter, Query, HTTPException
 from app.db.supabase import get_supabase
 from app.schemas.biomarkers import BiomarkerIngestRequest
 import traceback
+from fastapi import Depends
+from app.core.auth import get_current_user_id
 
 router = APIRouter(
     prefix="/api/v1/biomarkers",
@@ -109,6 +111,53 @@ def get_biomarkers(
 def get_latest_biomarker(
     user_id: str = Query(..., description="User UUID"),
     biomarker_type: str = Query(..., description="biomarker type e.g. heart_rate"),
+):
+    sb = get_supabase()
+
+    resp = (
+        sb.table("biomarker_readings")
+        .select("*")
+        .eq("user_id", user_id)
+        .eq("type", biomarker_type)
+        .order("recorded_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    data = resp.data or []
+    if not data:
+        raise HTTPException(status_code=404, detail="No biomarker data found")
+
+    return data[0]
+
+@router.get("/mine")
+def get_my_biomarkers(
+    biomarker_type: str | None = Query(None, description="Optional biomarker type"),
+    user_id: str = Depends(get_current_user_id)
+):
+    sb = get_supabase()
+
+    query = (
+        sb.table("biomarker_readings")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("recorded_at", desc=True)
+    )
+
+    if biomarker_type:
+        query = query.eq("type", biomarker_type)
+
+    resp = query.execute()
+
+    return {
+        "count": len(resp.data),
+        "data": resp.data
+    }
+
+@router.get("/latest/mine")
+def get_my_latest_biomarker(
+    biomarker_type: str = Query(..., description="biomarker type"),
+    user_id: str = Depends(get_current_user_id)
 ):
     sb = get_supabase()
 
