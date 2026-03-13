@@ -4,6 +4,7 @@ from app.routers.alerts import router as alerts_router
 from app.routers.devices import router as devices_router
 from app.routers.auth import router as auth_router
 from app.routers.providers import router as provider_router
+from app.routers.reports import router as reports_router
 
 app = FastAPI(title="CareMinder Backend")
 
@@ -23,3 +24,4 @@ app.include_router(biomarker_router)
 app.include_router(alerts_router)
 app.include_router(devices_router)
 app.include_router(provider_router)
+app.include_router(reports_router)
