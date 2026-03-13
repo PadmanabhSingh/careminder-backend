@@ -3,13 +3,14 @@ from app.routers.biomarkers import router as biomarker_router
 from app.routers.alerts import router as alerts_router
 from app.routers.devices import router as devices_router
 from app.routers.auth import router as auth_router
+from app.routers.providers import router as provider_router
 
 app = FastAPI(title="CareMinder Backend")
 
 
 @app.get("/")
 def root():
-    return {"message": "CareMinder backend running"}
+    return {"message": "CareMinder backend running successfully!"}
 
 
 @app.get("/health")
@@ -21,3 +22,4 @@ app.include_router(auth_router)
 app.include_router(biomarker_router)
 app.include_router(alerts_router)
 app.include_router(devices_router)
+app.include_router(provider_router)
