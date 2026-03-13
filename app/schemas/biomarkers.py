@@ -1,13 +1,13 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from uuid import UUID
 
 
 class BiomarkerIngestRequest(BaseModel):
     user_id: UUID
-    type: str
+    type: str = Field(..., min_length=1)
     value: float
-    unit: str
+    unit: str = Field(..., min_length=1)
     recorded_at: datetime
 
 

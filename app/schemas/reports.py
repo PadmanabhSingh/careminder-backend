@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import date
 
 
@@ -7,4 +7,4 @@ class GenerateSummaryRequest(BaseModel):
 
 
 class GenerateReportRequest(BaseModel):
-    title: str
+    title: str = Field(..., min_length=3)
