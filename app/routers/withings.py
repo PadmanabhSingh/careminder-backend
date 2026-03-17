@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import RedirectResponse
 from app.core.auth import get_current_user_id
 from app.db.supabase import get_supabase
 import os
@@ -31,7 +30,6 @@ def get_withings_config():
 def get_withings_auth_url(user_id: str = Depends(get_current_user_id)):
     client_id, _, redirect_uri, api_base = get_withings_config()
 
-    # Minimal OAuth start URL
     params = {
         "response_type": "code",
         "client_id": client_id,
@@ -52,12 +50,16 @@ def get_withings_auth_url(user_id: str = Depends(get_current_user_id)):
 
 @router.get("/callback")
 def withings_callback(
-    code: str = Query(...),
-    state: str = Query(...)
+    code: str | None = Query(None),
+    state: str | None = Query(None)
 ):
-    """
-    state is the CareMinder user_id we sent in /auth-url
-    """
+    # This lets Withings verify the callback URL without query params
+    if not code or not state:
+        return {
+            "status": "callback_ready",
+            "message": "Withings callback endpoint is reachable"
+        }
+
     client_id, client_secret, redirect_uri, api_base = get_withings_config()
     sb = get_supabase()
 
@@ -98,104 +100,4 @@ def withings_callback(
     return {
         "status": "connected",
         "data": saved.data[0]
-    }
-
-
-@router.post("/sync")
-def sync_withings_data(user_id: str = Depends(get_current_user_id)):
-    """
-    Simple first sync: fetch Withings measurements and normalize a few known types.
-    """
-    _, _, _, api_base = get_withings_config()
-    sb = get_supabase()
-
-    token_resp = (
-        sb.table("withings_tokens")
-        .select("*")
-        .eq("user_id", user_id)
-        .limit(1)
-        .execute()
-    )
-
-    token_rows = token_resp.data or []
-    if not token_rows:
-        raise HTTPException(status_code=404, detail="No Withings connection found for this user")
-
-    token_row = token_rows[0]
-    access_token = token_row["access_token"]
-
-    # Example measurement fetch
-    meas_url = f"{api_base}/measure"
-
-    params = {
-        "action": "getmeas"
-    }
-
-    headers = {
-        "Authorization": f"Bearer {access_token}"
-    }
-
-    resp = requests.get(meas_url, params=params, headers=headers, timeout=20)
-    data = resp.json()
-
-    if resp.status_code != 200:
-        raise HTTPException(status_code=resp.status_code, detail=f"Withings sync failed: {data}")
-
-    measures = data.get("body", {}).get("measuregrps", [])
-
-    inserted = []
-
-    # Very minimal normalization example
-    for grp in measures[:10]:
-        date_epoch = grp.get("date")
-        measured_at = None
-        if date_epoch:
-            from datetime import datetime, timezone
-            measured_at = datetime.fromtimestamp(date_epoch, tz=timezone.utc).isoformat()
-        else:
-            measured_at = None
-
-        for m in grp.get("measures", []):
-            type_code = m.get("type")
-            value = m.get("value")
-            unit_exp = m.get("unit", 0)
-
-            if value is None:
-                continue
-
-            actual_value = value * (10 ** unit_exp)
-
-            # Example mappings — you can extend later
-            biomarker_type = None
-            biomarker_unit = None
-
-            if type_code == 9:
-                biomarker_type = "blood_pressure_diastolic"
-                biomarker_unit = "mmHg"
-            elif type_code == 10:
-                biomarker_type = "blood_pressure_systolic"
-                biomarker_unit = "mmHg"
-            elif type_code == 11:
-                biomarker_type = "heart_rate"
-                biomarker_unit = "bpm"
-
-            if not biomarker_type:
-                continue
-
-            row = {
-                "user_id": user_id,
-                "type": biomarker_type,
-                "value": actual_value,
-                "unit": biomarker_unit,
-                "recorded_at": measured_at,
-            }
-
-            saved = sb.table("biomarker_readings").insert(row).execute()
-            if getattr(saved, "data", None):
-                inserted.append(saved.data[0])
-
-    return {
-        "status": "synced",
-        "count": len(inserted),
-        "data": inserted
     }
