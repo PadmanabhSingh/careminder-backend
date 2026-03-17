@@ -35,7 +35,7 @@ def get_withings_auth_url(user_id: str = Depends(get_current_user_id)):
         "response_type": "code",
         "client_id": client_id,
         "redirect_uri": redirect_uri,
-        "scope": "user.info,user.metrics",
+        "scope": "user.activity,user.metrics",
         "state": user_id
     }
 
