@@ -5,6 +5,7 @@ import os
 import requests
 from urllib.parse import urlencode
 from dotenv import load_dotenv
+from fastapi.responses import JSONResponse 
 
 load_dotenv(".env")
 
@@ -47,14 +48,15 @@ def get_withings_auth_url(user_id: str = Depends(get_current_user_id)):
         }
     }
 
-
-@router.api_route("/callback", methods=["GET", "POST"])
+@router.api_route("/callback", methods=["GET", "POST", "HEAD"])
 async def withings_callback(
     request: Request,
     code: str | None = Query(None),
     state: str | None = Query(None)
 ):
-    # Allow Withings callback URL verification without OAuth params
+    if request.method == "HEAD":
+        return JSONResponse(status_code=200, content={})
+
     if not code or not state:
         return {
             "status": "callback_ready",
