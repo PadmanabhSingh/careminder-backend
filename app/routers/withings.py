@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from app.core.auth import get_current_user_id
 from app.db.supabase import get_supabase
 import os
@@ -48,15 +48,17 @@ def get_withings_auth_url(user_id: str = Depends(get_current_user_id)):
     }
 
 
-@router.get("/callback")
-def withings_callback(
+@router.api_route("/callback", methods=["GET", "POST"])
+async def withings_callback(
+    request: Request,
     code: str | None = Query(None),
     state: str | None = Query(None)
 ):
-    # This lets Withings verify the callback URL without query params
+    # Allow Withings callback URL verification without OAuth params
     if not code or not state:
         return {
             "status": "callback_ready",
+            "method": request.method,
             "message": "Withings callback endpoint is reachable"
         }
 
