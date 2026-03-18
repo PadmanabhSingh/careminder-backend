@@ -29,17 +29,17 @@ def get_withings_config():
 
 @router.get("/auth-url")
 def get_withings_auth_url(user_id: str = Depends(get_current_user_id)):
-    client_id, _, redirect_uri, api_base = get_withings_config()
+    client_id, _, redirect_uri, _ = get_withings_config()
 
     params = {
         "response_type": "code",
         "client_id": client_id,
         "redirect_uri": redirect_uri,
-        "scope": "user.activity,user.metrics",
+        "scope": "user.metrics,user.activity",
         "state": user_id
     }
 
-    auth_url = f"{api_base}/oauth2_user/authorize2?{urlencode(params)}"
+    auth_url = f"https://account.withings.com/oauth2_user/authorize2?{urlencode(params)}"
 
     return {
         "status": "success",
