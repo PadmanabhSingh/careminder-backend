@@ -195,5 +195,7 @@ def sync_withings_data(user_id: str = Depends(get_current_user_id)):
     return {
         "status": "synced",
         "count": len(inserted),
-        "data": inserted
+        "data": inserted,
+        "raw_measure_groups_count": len(measures),
+        "raw_measure_groups": measures[:3]
     }
