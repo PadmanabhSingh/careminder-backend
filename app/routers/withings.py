@@ -166,7 +166,21 @@ def sync_withings_data(user_id: str = Depends(get_current_user_id)):
 
             biomarker_type = None
             biomarker_unit = None
+                        # Type 4 = height (meters from Withings scale)
+            if type_code == 4:
+                height_cm = actual_value * 100
 
+                sb.table("profiles").update({
+                    "height_cm": height_cm
+                }).eq("user_id", user_id).execute()
+
+                inserted.append({
+                    "kind": "profile_update",
+                    "field": "height_cm",
+                    "value": height_cm
+                })
+                continue
+            
             if type_code == 9:
                 biomarker_type = "blood_pressure_diastolic"
                 biomarker_unit = "mmHg"
