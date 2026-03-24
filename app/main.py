@@ -17,10 +17,12 @@ from app.routers.achievements import router as achievements_router
 
 app = FastAPI(title="CareMinder Backend")
 
-
+origins = [
+    ["*"], # allows all origins 
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # for development; tighten later
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
