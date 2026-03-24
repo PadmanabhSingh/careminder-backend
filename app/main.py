@@ -14,6 +14,7 @@ from app.routers.users import router as users_router
 from app.routers.specialists import router as specialists_router
 from app.routers.appointments import router as apointments_router
 from app.routers.achievements import router as achievements_router
+from app.routers.chat import router as chat_router
 
 app = FastAPI(title="CareMinder Backend")
 
@@ -66,3 +67,4 @@ app.include_router(users_router)
 app.include_router(specialists_router)
 app.include_router(apointments_router)
 app.include_router(achievements_router) 
+app.include_router(chat_router)
