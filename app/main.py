@@ -12,6 +12,8 @@ from app.routers.weather import router as weather_router
 from app.routers.withings import router as withings_router
 from app.routers.users import router as users_router
 from app.routers.specialists import router as specialists_router
+from app.routers.appointments import router as apointments_router
+from app.routers.achievements import router as achievements_router
 
 app = FastAPI(title="CareMinder Backend")
 
@@ -60,3 +62,5 @@ app.include_router(weather_router)
 app.include_router(withings_router)
 app.include_router(users_router)
 app.include_router(specialists_router)
+app.include_router(apointments_router)
+app.include_router(achievements_router) 
