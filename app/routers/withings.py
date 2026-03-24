@@ -106,6 +106,114 @@ async def withings_callback(
         "data": saved.data[0]
     }
 
+# @router.post("/sync")
+# def sync_withings_data(user_id: str = Depends(get_current_user_id)):
+#     _, _, _, api_base = get_withings_config()
+#     sb = get_supabase()
+
+#     token_resp = (
+#         sb.table("withings_tokens")
+#         .select("*")
+#         .eq("user_id", user_id)
+#         .limit(1)
+#         .execute()
+#     )
+
+#     token_rows = token_resp.data or []
+#     if not token_rows:
+#         raise HTTPException(status_code=404, detail="No Withings connection found for this user")
+
+#     token_row = token_rows[0]
+#     access_token = token_row["access_token"]
+
+#     meas_url = f"{api_base}/measure"
+
+#     params = {
+#         "action": "getmeas"
+#     }
+
+#     headers = {
+#         "Authorization": f"Bearer {access_token}"
+#     }
+
+#     resp = requests.get(meas_url, params=params, headers=headers, timeout=20)
+#     data = resp.json()
+
+#     if resp.status_code != 200:
+#         raise HTTPException(status_code=resp.status_code, detail=f"Withings sync failed: {data}")
+
+#     measures = data.get("body", {}).get("measuregrps", [])
+
+#     inserted = []
+
+#     for grp in measures[:10]:
+#         date_epoch = grp.get("date")
+#         measured_at = None
+
+#         if date_epoch:
+#             from datetime import datetime, timezone
+#             measured_at = datetime.fromtimestamp(date_epoch, tz=timezone.utc).isoformat()
+
+#         for m in grp.get("measures", []):
+#             type_code = m.get("type")
+#             value = m.get("value")
+#             unit_exp = m.get("unit", 0)
+
+#             if value is None:
+#                 continue
+
+#             actual_value = value * (10 ** unit_exp)
+
+#             biomarker_type = None
+#             biomarker_unit = None
+#                         # Type 4 = height (meters from Withings scale)
+#             if type_code == 4:
+#                 height_cm = actual_value * 100
+
+#                 sb.table("profiles").update({
+#                     "height_cm": height_cm
+#                 }).eq("user_id", user_id).execute()
+
+#                 inserted.append({
+#                     "kind": "profile_update",
+#                     "field": "height_cm",
+#                     "value": height_cm
+#                 })
+#                 continue
+            
+#             if type_code == 9:
+#                 biomarker_type = "blood_pressure_diastolic"
+#                 biomarker_unit = "mmHg"
+#             elif type_code == 10:
+#                 biomarker_type = "blood_pressure_systolic"
+#                 biomarker_unit = "mmHg"
+#             elif type_code == 11:
+#                 biomarker_type = "heart_rate"
+#                 biomarker_unit = "bpm"
+
+#             if not biomarker_type:
+#                 continue
+
+#             row = {
+#                 "user_id": user_id,
+#                 "type": biomarker_type,
+#                 "value": actual_value,
+#                 "unit": biomarker_unit,
+#                 "recorded_at": measured_at,
+#             }
+
+#             saved = sb.table("biomarker_readings").insert(row).execute()
+#             if getattr(saved, "data", None):
+#                 inserted.append(saved.data[0])
+
+#     return {
+#         "status": "synced",
+#         "count": len(inserted),
+#         "data": inserted,
+#         "raw_measure_groups_count": len(measures),
+#         "raw_measure_groups": measures[:3]
+#     }
+
 @router.post("/sync")
 def sync_withings_data(user_id: str = Depends(get_current_user_id)):
     _, _, _, api_base = get_withings_config()
@@ -126,90 +234,164 @@ def sync_withings_data(user_id: str = Depends(get_current_user_id)):
     token_row = token_rows[0]
     access_token = token_row["access_token"]
 
-    meas_url = f"{api_base}/measure"
+    inserted = []
 
-    params = {
+    # -------------------------------------------------
+    # PART 1: METRICS SYNC (measure endpoint)
+    # -------------------------------------------------
+    meas_url = f"{api_base}/measure"
+    meas_params = {
         "action": "getmeas"
     }
-
     headers = {
         "Authorization": f"Bearer {access_token}"
     }
 
-    resp = requests.get(meas_url, params=params, headers=headers, timeout=20)
-    data = resp.json()
+    meas_resp = requests.get(meas_url, params=meas_params, headers=headers, timeout=20)
+    meas_data = meas_resp.json()
 
-    if resp.status_code != 200:
-        raise HTTPException(status_code=resp.status_code, detail=f"Withings sync failed: {data}")
+    if meas_resp.status_code == 200:
+        measures = meas_data.get("body", {}).get("measuregrps", [])
 
-    measures = data.get("body", {}).get("measuregrps", [])
+        for grp in measures[:20]:
+            date_epoch = grp.get("date")
+            measured_at = None
 
-    inserted = []
+            if date_epoch:
+                from datetime import datetime, timezone
+                measured_at = datetime.fromtimestamp(date_epoch, tz=timezone.utc).isoformat()
 
-    for grp in measures[:10]:
-        date_epoch = grp.get("date")
-        measured_at = None
+            for m in grp.get("measures", []):
+                type_code = m.get("type")
+                value = m.get("value")
+                unit_exp = m.get("unit", 0)
 
-        if date_epoch:
-            from datetime import datetime, timezone
-            measured_at = datetime.fromtimestamp(date_epoch, tz=timezone.utc).isoformat()
+                if value is None:
+                    continue
 
-        for m in grp.get("measures", []):
-            type_code = m.get("type")
-            value = m.get("value")
-            unit_exp = m.get("unit", 0)
+                actual_value = value * (10 ** unit_exp)
 
-            if value is None:
-                continue
+                # Type 4 = height in meters -> profiles.height_cm
+                if type_code == 4:
+                    height_cm = actual_value * 100
+                    sb.table("profiles").update({
+                        "height_cm": height_cm
+                    }).eq("user_id", user_id).execute()
 
-            actual_value = value * (10 ** unit_exp)
+                    inserted.append({
+                        "kind": "profile_update",
+                        "field": "height_cm",
+                        "value": height_cm
+                    })
+                    continue
 
-            biomarker_type = None
-            biomarker_unit = None
-                        # Type 4 = height (meters from Withings scale)
-            if type_code == 4:
-                height_cm = actual_value * 100
+                # Type 1 = weight in kg -> profiles.weight_kg
+                if type_code == 1:
+                    sb.table("profiles").update({
+                        "weight_kg": actual_value
+                    }).eq("user_id", user_id).execute()
 
-                sb.table("profiles").update({
-                    "height_cm": height_cm
-                }).eq("user_id", user_id).execute()
+                    inserted.append({
+                        "kind": "profile_update",
+                        "field": "weight_kg",
+                        "value": actual_value
+                    })
+                    continue
 
-                inserted.append({
-                    "kind": "profile_update",
-                    "field": "height_cm",
-                    "value": height_cm
-                })
-                continue
-            
-            if type_code == 9:
-                biomarker_type = "blood_pressure_diastolic"
-                biomarker_unit = "mmHg"
-            elif type_code == 10:
-                biomarker_type = "blood_pressure_systolic"
-                biomarker_unit = "mmHg"
-            elif type_code == 11:
-                biomarker_type = "heart_rate"
-                biomarker_unit = "bpm"
+                biomarker_type = None
+                biomarker_unit = None
 
-            if not biomarker_type:
-                continue
+                if type_code == 9:
+                    biomarker_type = "blood_pressure_diastolic"
+                    biomarker_unit = "mmHg"
+                elif type_code == 10:
+                    biomarker_type = "blood_pressure_systolic"
+                    biomarker_unit = "mmHg"
+                elif type_code == 11:
+                    biomarker_type = "heart_rate"
+                    biomarker_unit = "bpm"
+                elif type_code == 54:
+                    biomarker_type = "spo2"
+                    biomarker_unit = "%"
+                elif type_code == 119:
+                    biomarker_type = "blood_glucose"
+                    biomarker_unit = "mg/dL"
 
-            row = {
+                if not biomarker_type:
+                    continue
+
+                row = {
+                    "user_id": user_id,
+                    "type": biomarker_type,
+                    "value": actual_value,
+                    "unit": biomarker_unit,
+                    "recorded_at": measured_at,
+                }
+
+                saved = sb.table("biomarker_readings").insert(row).execute()
+                if getattr(saved, "data", None):
+                    inserted.append(saved.data[0])
+
+    # -------------------------------------------------
+    # PART 2: ACTIVITY SYNC (steps, calories, distance)
+    # -------------------------------------------------
+    from datetime import datetime, timedelta, timezone
+
+    today = datetime.now(timezone.utc).date()
+    startdateymd = (today - timedelta(days=7)).strftime("%Y-%m-%d")
+    enddateymd = today.strftime("%Y-%m-%d")
+
+    activity_url = f"{api_base}/v2/measure"
+    activity_params = {
+        "action": "getactivity",
+        "startdateymd": startdateymd,
+        "enddateymd": enddateymd,
+    }
+
+    activity_resp = requests.get(activity_url, params=activity_params, headers=headers, timeout=20)
+    activity_data = activity_resp.json()
+
+    if activity_resp.status_code != 200:
+        raise HTTPException(
+            status_code=activity_resp.status_code,
+            detail=f"Withings activity sync failed: {activity_data}"
+        )
+
+    activities = activity_data.get("body", {}).get("activities", [])
+
+    for act in activities:
+        date_ymd = act.get("date")
+        if not date_ymd:
+            continue
+
+        recorded_at = f"{date_ymd}T12:00:00+00:00"
+
+        if act.get("steps") is not None:
+            saved = sb.table("biomarker_readings").insert({
                 "user_id": user_id,
-                "type": biomarker_type,
-                "value": actual_value,
-                "unit": biomarker_unit,
-                "recorded_at": measured_at,
-            }
+                "type": "steps",
+                "value": act["steps"],
+                "unit": "count",
+                "recorded_at": recorded_at,
+            }).execute()
+            if getattr(saved, "data", None):
+                inserted.append(saved.data[0])
 
-            saved = sb.table("biomarker_readings").insert(row).execute()
+        # optional: store sleep if available in activity payload
+        if act.get("sleep_duration") is not None:
+            saved = sb.table("biomarker_readings").insert({
+                "user_id": user_id,
+                "type": "sleep_minutes",
+                "value": act["sleep_duration"] / 60.0,
+                "unit": "minutes",
+                "recorded_at": recorded_at,
+            }).execute()
             if getattr(saved, "data", None):
                 inserted.append(saved.data[0])
 
     return {
         "status": "synced",
         "count": len(inserted),
-        "data": inserted,
-        "raw_measure_groups_count": len(measures),
-        "raw_measure_groups": measures[:3]
+        "activity_days_found": len(activities),
+        "data": inserted
     }
