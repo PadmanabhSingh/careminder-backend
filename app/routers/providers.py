@@ -11,8 +11,8 @@ router = APIRouter(
 
 def ensure_provider(sb, provider_id: str):
     role_resp = (
-        sb.table("user_roles")
-        .select("*")
+        sb.table("profiles")
+        .select("role")
         .eq("user_id", provider_id)
         .eq("role", "provider")
         .limit(1)
@@ -20,6 +20,10 @@ def ensure_provider(sb, provider_id: str):
     )
 
     if not role_resp.data:
+        raise HTTPException(status_code=404, detail="Provider profile not found")
+
+    role = role_resp.data[0].get("role")
+    if role != "provider":
         raise HTTPException(status_code=403, detail="User is not a provider")
 
 

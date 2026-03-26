@@ -40,18 +40,13 @@ end $$;
 create table if not exists profiles (
   user_id uuid primary key,
   full_name text,
+  role user_role not null default 'user',
   date_of_birth date,
   gender text,
   height_cm numeric(5,2),
   weight_kg numeric(5,2),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
-);
-
-create table if not exists user_roles (
-  user_id uuid primary key,
-  role user_role not null default 'user',
-  created_at timestamptz not null default now()
 );
 
 create table if not exists provider_permissions (

@@ -8,12 +8,14 @@ create or replace function public.is_admin()
 returns boolean
 language sql
 stable
+security definer
+set search_path = public 
 as $$
   select exists (
     select 1
-    from public.user_roles ur
-    where ur.user_id = auth.uid()
-      and ur.role = 'admin'
+    from public.profiles p
+    where p.user_id = auth.uid()
+      and p.role = 'admin'
   );
 $$;
 
@@ -22,12 +24,14 @@ create or replace function public.is_provider()
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select exists (
     select 1
-    from public.user_roles ur
-    where ur.user_id = auth.uid()
-      and ur.role = 'provider'
+    from public.profiles p
+    where p.user_id = auth.uid()
+      and p.role = 'provider'
   );
 $$;
 
@@ -36,6 +40,8 @@ create or replace function public.provider_can_access(target_user uuid)
 returns boolean
 language sql
 stable
+security definer
+set search_path = public 
 as $$
   select exists (
     select 1
@@ -51,7 +57,6 @@ $$;
 -- =========================================================
 
 alter table public.profiles enable row level security;
-alter table public.user_roles enable row level security;
 alter table public.provider_permissions enable row level security;
 
 alter table public.devices enable row level security;
@@ -87,23 +92,6 @@ create policy "profiles_insert_own_or_admin"
 on public.profiles
 for insert
 with check (auth.uid() = user_id or public.is_admin());
-
--- =========================================================
--- USER ROLES (admin manages; user can read own role)
--- =========================================================
-
-drop policy if exists "user_roles_select_own_or_admin" on public.user_roles;
-create policy "user_roles_select_own_or_admin"
-on public.user_roles
-for select
-using (auth.uid() = user_id or public.is_admin());
-
-drop policy if exists "user_roles_admin_all" on public.user_roles;
-create policy "user_roles_admin_all"
-on public.user_roles
-for all
-using (public.is_admin())
-with check (public.is_admin());
 
 -- =========================================================
 -- PROVIDER PERMISSIONS
@@ -319,5 +307,5 @@ with check (true);
 drop policy if exists "audit_select_admin_only" on public.audit_logs;
 create policy "audit_select_admin_only"
 on public.audit_logs
-for select
+for select.
 using (public.is_admin());
