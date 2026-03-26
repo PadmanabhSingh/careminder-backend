@@ -56,6 +56,12 @@ def root():
 def health_check():
     return {"status": "ok"}
 
+@app.get("/reset-password")
+def reset_password_page():
+    return {
+        "message": "Password reset link sent"
+    }
+
 
 app.include_router(auth_router)
 app.include_router(biomarker_router)

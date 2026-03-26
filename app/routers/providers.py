@@ -93,16 +93,17 @@ def get_provider_patients(provider_id: str = Depends(get_current_user_id)):
     patient_ids = [row["user_id"] for row in (perm_resp.data or [])]
 
     if not patient_ids:
-        return {"count": 0, "data": []}
+        return {"status": "success", "count": 0, "data": []}
 
     profiles_resp = (
         sb.table("profiles")
-        .select("*")
+        .select("full_name, user_id, email")
         .in_("user_id", patient_ids)
         .execute()
     )
 
     return {
+        "status": "success",
         "count": len(profiles_resp.data),
         "data": profiles_resp.data
     }
