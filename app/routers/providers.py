@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException
-from rich.prompt import result
 from app.core.auth import get_current_user_id
 from app.db.supabase import get_supabase
 from app.schemas.providers import ClinicalNoteRequest
