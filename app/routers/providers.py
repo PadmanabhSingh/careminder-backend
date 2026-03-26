@@ -248,6 +248,37 @@ def get_provider_all_appointments(provider_id: str = Depends(get_current_user_id
         "data": result
     }
 
+# @router.get("/patients")
+# def get_provider_patients(provider_id: str = Depends(get_current_user_id)):
+#     sb = get_supabase()
+
+#     ensure_provider(sb, provider_id)
+
+#     perm_resp = (
+#         sb.table("provider_permissions")
+#         .select("user_id")
+#         .eq("provider_id", provider_id)
+#         .is_("revoked_at", None)
+#         .execute()
+#     )
+
+#     patient_ids = [row["user_id"] for row in (perm_resp.data or [])]
+
+#     if not patient_ids:
+#         return {"status": "success", "count": 0, "data": []}
+
+#     profiles_resp = (
+#     sb.table("profiles")
+#     .select("user_id, first_name, last_name, full_name, role, date_of_birth, gender, height_cm, weight_kg")
+#     .in_("user_id", patient_ids)
+#     .execute()
+# )
+
+#     return {
+#         "status": "success",
+#         "count": len(profiles_resp.data),
+#         "data": profiles_resp.data
+#     }
 @router.get("/patients")
 def get_provider_patients(provider_id: str = Depends(get_current_user_id)):
     sb = get_supabase()
@@ -268,16 +299,35 @@ def get_provider_patients(provider_id: str = Depends(get_current_user_id)):
         return {"status": "success", "count": 0, "data": []}
 
     profiles_resp = (
-    sb.table("profiles")
-    .select("user_id, first_name, last_name, full_name, role, date_of_birth, gender, height_cm, weight_kg")
-    .in_("user_id", patient_ids)
-    .execute()
-)
+        sb.table("profiles")
+        .select("user_id, first_name, last_name, full_name, role, date_of_birth, gender, height_cm, weight_kg")
+        .in_("user_id", patient_ids)
+        .execute()
+    )
+
+    patients = []
+
+    for p in (profiles_resp.data or []):
+        first_name = p.get("first_name", "")
+        last_name = p.get("last_name", "")
+        full_name = f"{first_name} {last_name}".strip() or p.get("full_name", "")
+
+        patients.append({
+            "user_id": p["user_id"],
+            "firstName": first_name,
+            "lastName": last_name,
+            "fullName": full_name,
+            "role": p.get("role"),
+            "date_of_birth": p.get("date_of_birth"),
+            "gender": p.get("gender"),
+            "height_cm": p.get("height_cm"),
+            "weight_kg": p.get("weight_kg"),
+        })
 
     return {
         "status": "success",
-        "count": len(profiles_resp.data),
-        "data": profiles_resp.data
+        "count": len(patients),
+        "data": patients
     }
 
 
