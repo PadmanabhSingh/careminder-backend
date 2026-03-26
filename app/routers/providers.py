@@ -8,13 +8,11 @@ router = APIRouter(
     tags=["Provider Dashboard"]
 )
 
-
 def ensure_provider(sb, provider_id: str):
     role_resp = (
         sb.table("profiles")
         .select("role")
         .eq("user_id", provider_id)
-        .eq("role", "provider")
         .limit(1)
         .execute()
     )
@@ -26,6 +24,18 @@ def ensure_provider(sb, provider_id: str):
     if role != "provider":
         raise HTTPException(status_code=403, detail="User is not a provider")
 
+
+def can_access_patient(sb, provider_id: str, user_id: str) -> bool:
+    perm_resp = (
+        sb.table("provider_permissions")
+        .select("*")
+        .eq("provider_id", provider_id)
+        .eq("user_id", user_id)
+        .is_("revoked_at", None)
+        .limit(1)
+        .execute()
+    )
+    return bool(perm_resp.data)
 
 def ensure_provider_can_access(sb, provider_id: str, patient_id: str):
     perm_resp = (
@@ -135,7 +145,85 @@ def get_patient_notes(user_id: str, provider_id: str = Depends(get_current_user_
         "count": len(resp.data),
         "data": resp.data
     }
+@router.get("/patient/{user_id}/reports")
+def get_patient_reports(user_id: str, provider_id: str = Depends(get_current_user_id)):
+    sb = get_supabase()
 
+    ensure_provider(sb, provider_id)
+
+    if not can_access_patient(sb, provider_id, user_id):
+        raise HTTPException(status_code=403, detail="Access denied to this patient")
+
+    resp = (
+        sb.table("reports")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+
+    reports = resp.data or []
+
+    return {
+        "status": "success",
+        "count": len(reports),
+        "data": reports
+    }
+
+@router.get("/patient/{user_id}/appointments")
+def get_patient_appointments(user_id: str, provider_id: str = Depends(get_current_user_id)):
+    sb = get_supabase()
+
+    ensure_provider(sb, provider_id)
+
+    if not can_access_patient(sb, provider_id, user_id):
+        raise HTTPException(status_code=403, detail="Access denied to this patient")
+
+    resp = (
+        sb.table("appointments")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("appointment_date", desc=False)
+        .execute()
+    )
+
+    appointments = resp.data or []
+    result = []
+
+    for appt in appointments:
+        spec_resp = (
+            sb.table("specialists")
+            .select("*")
+            .eq("id", appt["specialist_id"])
+            .limit(1)
+            .execute()
+        )
+
+        specialist = spec_resp.data[0] if spec_resp.data else {
+            "name": "Unknown Specialist",
+            "specialty": "",
+            "image_path": ""
+        }
+
+        result.append({
+            "id": appt["id"],
+            "doctorName": specialist["name"],
+            "specialty": specialist["specialty"],
+            "date": appt["appointment_date"],
+            "time": appt["appointment_time"],
+            "location": appt["location"],
+            "status": appt["status"],
+            "imagePath": specialist["image_path"]
+        })
+
+    return {
+        "status": "success",
+        "count": len(result),
+        "data": result
+    }
+
+
+    
 
 @router.post("/clinical-notes")
 def create_clinical_note(
@@ -162,3 +250,5 @@ def create_clinical_note(
         "status": "saved",
         "data": resp.data[0]
     }
+
+    
