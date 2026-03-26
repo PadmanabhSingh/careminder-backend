@@ -77,6 +77,88 @@ def get_patient_summaries(user_id: str, provider_id: str = Depends(get_current_u
         "data": summaries
     }
 
+# @router.get("/appointments")
+# def get_provider_all_appointments(provider_id: str = Depends(get_current_user_id)):
+#     sb = get_supabase()
+
+#     ensure_provider(sb, provider_id)
+
+#     perm_resp = (
+#         sb.table("provider_permissions")
+#         .select("user_id")
+#         .eq("provider_id", provider_id)
+#         .is_("revoked_at", None)
+#         .execute()
+#     )
+
+#     patient_ids = [row["user_id"] for row in (perm_resp.data or [])]
+
+#     if not patient_ids:
+#         return {
+#             "status": "success",
+#             "count": 0,
+#             "data": []
+#         }
+
+#     appt_resp = (
+#         sb.table("appointments")
+#         .select("*")
+#         .in_("user_id", patient_ids)
+#         .order("appointment_date", desc=False)
+#         .execute()
+#     )
+
+#     appointments = appt_resp.data or []
+#     result = []
+
+#     for appt in appointments:
+#         profile_resp = (
+#             sb.table("profiles")
+#             .select("first_name,last_name,full_name")
+#             .eq("user_id", appt["user_id"])
+#             .limit(1)
+#             .execute()
+# )
+#         patient = profile_resp.data[0] if profile_resp.data else {"first_name": "","last_name": "","full_name": "Unknown Patient"}
+
+#         spec_resp = (
+#             sb.table("specialists")
+#             .select("*")
+#             .eq("id", appt["specialist_id"])
+#             .limit(1)
+#             .execute()
+#         )
+#         specialist = spec_resp.data[0] if spec_resp.data else {
+#             "name": "Unknown Specialist",
+#             "specialty": "",
+#             "image_path": ""
+#         }
+
+#         first_name = patient.get("first_name", "")
+#         last_name = patient.get("last_name", "")
+#         full_name = f"{first_name} {last_name}".strip() or patient.get("full_name", "Unknown Patient")
+
+#     result.append({
+#         "id": appt["id"],
+#         "patientId": appt["user_id"],
+#         "firstName": first_name,
+#         "lastName": last_name,
+#         "fullName": full_name,
+#         "patientName": full_name,
+#         "doctorName": specialist["name"],
+#         "specialty": specialist["specialty"],
+#         "date": appt["appointment_date"],
+#         "time": appt["appointment_time"],
+#         "location": appt["location"],
+#         "status": appt["status"],
+#         "imagePath": specialist["image_path"]
+# })
+
+#     return {
+#         "status": "success",
+#         "count": len(result),
+#         "data": result
+#     }
 @router.get("/appointments")
 def get_provider_all_appointments(provider_id: str = Depends(get_current_user_id)):
     sb = get_supabase()
@@ -118,8 +200,13 @@ def get_provider_all_appointments(provider_id: str = Depends(get_current_user_id
             .eq("user_id", appt["user_id"])
             .limit(1)
             .execute()
-)
-        patient = profile_resp.data[0] if profile_resp.data else {"first_name": "","last_name": "","full_name": "Unknown Patient"}
+        )
+
+        patient = profile_resp.data[0] if profile_resp.data else {
+            "first_name": "",
+            "last_name": "",
+            "full_name": "Unknown Patient"
+        }
 
         spec_resp = (
             sb.table("specialists")
@@ -128,6 +215,7 @@ def get_provider_all_appointments(provider_id: str = Depends(get_current_user_id
             .limit(1)
             .execute()
         )
+
         specialist = spec_resp.data[0] if spec_resp.data else {
             "name": "Unknown Specialist",
             "specialty": "",
@@ -138,21 +226,21 @@ def get_provider_all_appointments(provider_id: str = Depends(get_current_user_id
         last_name = patient.get("last_name", "")
         full_name = f"{first_name} {last_name}".strip() or patient.get("full_name", "Unknown Patient")
 
-    result.append({
-        "id": appt["id"],
-        "patientId": appt["user_id"],
-        "firstName": first_name,
-        "lastName": last_name,
-        "fullName": full_name,
-        "patientName": full_name,
-        "doctorName": specialist["name"],
-        "specialty": specialist["specialty"],
-        "date": appt["appointment_date"],
-        "time": appt["appointment_time"],
-        "location": appt["location"],
-        "status": appt["status"],
-        "imagePath": specialist["image_path"]
-})
+        result.append({
+            "id": appt["id"],
+            "patientId": appt["user_id"],
+            "firstName": first_name,
+            "lastName": last_name,
+            "fullName": full_name,
+            "patientName": full_name,
+            "doctorName": specialist["name"],
+            "specialty": specialist["specialty"],
+            "date": appt["appointment_date"],
+            "time": appt["appointment_time"],
+            "location": appt["location"],
+            "status": appt["status"],
+            "imagePath": specialist["image_path"]
+        })
 
     return {
         "status": "success",
