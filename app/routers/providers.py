@@ -3,6 +3,7 @@ from app.core.auth import get_current_user_id
 from app.db.supabase import get_supabase
 from app.schemas.providers import ClinicalNoteRequest
 
+
 router = APIRouter(
     prefix="/api/v1/provider",
     tags=["Provider Dashboard"]
@@ -97,7 +98,7 @@ def get_provider_patients(provider_id: str = Depends(get_current_user_id)):
 
     profiles_resp = (
         sb.table("profiles")
-        .select("full_name, user_id, email")
+        .select("user_id, full_name, role, date_of_birth, gender, height_cm, weight_kg")
         .in_("user_id", patient_ids)
         .execute()
     )
