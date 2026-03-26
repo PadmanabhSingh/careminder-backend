@@ -51,6 +51,30 @@ def ensure_provider_can_access(sb, provider_id: str, patient_id: str):
     if not perm_resp.data:
         raise HTTPException(status_code=403, detail="Provider does not have access to this patient")
 
+@router.get("/patient/{user_id}/summaries")
+def get_patient_summaries(user_id: str, provider_id: str = Depends(get_current_user_id)):
+    sb = get_supabase()
+
+    ensure_provider(sb, provider_id)
+
+    if not can_access_patient(sb, provider_id, user_id):
+        raise HTTPException(status_code=403, detail="Access denied to this patient")
+
+    resp = (
+        sb.table("daily_summaries")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("summary_date", desc=True)
+        .execute()
+    )
+
+    summaries = resp.data or []
+
+    return {
+        "status": "success",
+        "count": len(summaries),
+        "data": summaries
+    }
 
 @router.get("/patients")
 def get_provider_patients(provider_id: str = Depends(get_current_user_id)):
