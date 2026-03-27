@@ -12,7 +12,7 @@ SPECIALISTS = [
         "id": "spec_001",
         "name": "Dr. Sarah Lim",
         "specialty": "Cardiology",
-        "imagePath": "assets/images/specialists/cardiology_1.jpg",
+        "imagePath": "https://randomuser.me/api/portraits/women/44.jpg",
         "bio": "Experienced cardiologist focused on hypertension, heart rhythm monitoring, and preventive cardiovascular care.",
         "experienceYears": 12,
         "careerPath": [
@@ -30,7 +30,7 @@ SPECIALISTS = [
         "id": "spec_002",
         "name": "Dr. Jason Tan",
         "specialty": "Endocrinology",
-        "imagePath": "assets/images/specialists/endocrinology_1.jpg",
+        "imagePath": "https://randomuser.me/api/portraits/men/32.jpg",
         "bio": "Endocrinologist specializing in diabetes management, glucose control, and metabolic health.",
         "experienceYears": 10,
         "careerPath": [
@@ -48,7 +48,7 @@ SPECIALISTS = [
         "id": "spec_003",
         "name": "Dr. Aina Rahman",
         "specialty": "Pulmonology",
-        "imagePath": "assets/images/specialists/pulmonology_1.jpg",
+        "imagePath": "https://randomuser.me/api/portraits/women/65.jpg",
         "bio": "Pulmonologist interested in oxygen saturation trends, respiratory symptoms, and long-term lung health.",
         "experienceYears": 8,
         "careerPath": [
@@ -65,7 +65,7 @@ SPECIALISTS = [
         "id": "spec_004",
         "name": "Dr. Mei Wong",
         "specialty": "Sleep Medicine",
-        "imagePath": "assets/images/specialists/sleep_1.jpg",
+        "imagePath": "https://randomuser.me/api/portraits/women/68.jpg",
         "bio": "Sleep medicine specialist supporting sleep quality improvement and long-term behavioral sleep care.",
         "experienceYears": 9,
         "careerPath": [
