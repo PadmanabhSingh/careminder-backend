@@ -12,20 +12,23 @@ from app.routers.weather import router as weather_router
 from app.routers.withings import router as withings_router
 from app.routers.users import router as users_router
 from app.routers.specialists import router as specialists_router
-from app.routers.appointments import router as apointments_router
+from app.routers.appointments import router as appointments_router
 from app.routers.achievements import router as achievements_router
 from app.routers.chat import router as chat_router
-from app.routers.fitness import router as fitness_router    
+from app.routers.fitness import router as fitness_router
 from app.routers.dashboard import router as dashboard_router
 
 app = FastAPI(title="CareMinder Backend")
 
-origins = [
-    ["*"], # allows all origins 
+allowed_origins = [
+    "https://careminder.vercel.app",
+    "http://localhost:8080",
+    # "http://localhost:5173",
 ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -56,6 +59,7 @@ def root():
 def health_check():
     return {"status": "ok"}
 
+
 @app.get("/reset-password")
 def reset_password_page():
     return {
@@ -69,12 +73,12 @@ app.include_router(alerts_router)
 app.include_router(devices_router)
 app.include_router(provider_router)
 app.include_router(reports_router)
-app.include_router(weather_router)  
+app.include_router(weather_router)
 app.include_router(withings_router)
 app.include_router(users_router)
 app.include_router(specialists_router)
-app.include_router(apointments_router)
-app.include_router(achievements_router) 
+app.include_router(appointments_router)
+app.include_router(achievements_router)
 app.include_router(chat_router)
 app.include_router(fitness_router)
 app.include_router(dashboard_router)
