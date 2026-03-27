@@ -30,10 +30,17 @@ Production:
 
 ## Auth
 Use:
-`Authorization: Bearer <supabase_access_token>`
+`Authorization: <supabase_access_token>` // can generate the token by adjusting id and password of user or provider in get_token.py under scripts folder in repo 
 
 ## Environment Variables
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- SUPABASE_URL
+- SUPABASE_ANON_KEY
+- SUPABASE_SERVICE_ROLE_KEY
+- OPENAI_API_KEY
+- PASSWORD_RESET_REDIRECT_URL
+- WITHINGS_API_BASE
+- WITHINGS_REDIRECT_URI
+- WITHINGS_CLIENT_SECRET
+- WITHINGS_CLIENT_ID
+- OPENWEATHER_API_KEY
 
