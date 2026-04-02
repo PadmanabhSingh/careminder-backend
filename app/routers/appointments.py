@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.core.auth import get_current_user_id
 from app.db.supabase import get_supabase
 from app.schemas.appointments import CreateAppointmentRequest, UpdateAppointmentRequest
-from datetime import datetime, date 
+from datetime import date, datetime 
 
 router = APIRouter(
     prefix="/api/v1/appointments",
@@ -17,7 +17,6 @@ def create_appointment(
 ):
     sb = get_supabase()
 
-    # Reject past dates
     if payload.date < date.today():
         raise HTTPException(status_code=400, detail="Appointment date must be today or in the future")
 
