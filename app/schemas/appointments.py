@@ -5,8 +5,8 @@ from datetime import datetime
 
 class CreateAppointmentRequest(BaseModel):
     specialist_id: str = Field(..., min_length=1)
-    date: datetime = Field(...)
-    time: datetime = Field(...)
+    date: date
+    time: str = Field(...,min_length=1)
     location: str = Field(..., min_length=1)
 
 

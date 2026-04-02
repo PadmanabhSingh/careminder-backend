@@ -17,12 +17,10 @@ def create_appointment(
 ):
     sb = get_supabase()
 
-    # 1. Reject past dates
-    today = date.today()
-    if payload.date < today:
+    # Reject past dates
+    if payload.date < date.today():
         raise HTTPException(status_code=400, detail="Appointment date must be today or in the future")
 
-    # 2. Check specialist exists
     specialist_resp = (
         sb.table("specialists")
         .select("*")
@@ -36,7 +34,6 @@ def create_appointment(
 
     specialist = specialist_resp.data[0]
 
-    # 3. Check if slot exists and is free
     slot_resp = (
         sb.table("specialist_availability")
         .select("*")
@@ -51,7 +48,6 @@ def create_appointment(
     if not slot_resp.data:
         raise HTTPException(status_code=409, detail="Selected time slot is not available")
 
-    # 4. Insert appointment
     appointment_data = {
         "user_id": user_id,
         "specialist_id": payload.specialist_id,
@@ -66,7 +62,6 @@ def create_appointment(
     if not getattr(created, "data", None):
         raise HTTPException(status_code=500, detail="Failed to create appointment")
 
-    # 5. Mark slot as booked
     sb.table("specialist_availability").update({
         "is_booked": True
     }).eq("specialist_id", payload.specialist_id) \
