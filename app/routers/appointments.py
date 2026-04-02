@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.core.auth import get_current_user_id
 from app.db.supabase import get_supabase
 from app.schemas.appointments import CreateAppointmentRequest, UpdateAppointmentRequest
+from datetime import datetime, date 
 
 router = APIRouter(
     prefix="/api/v1/appointments",
@@ -16,6 +17,12 @@ def create_appointment(
 ):
     sb = get_supabase()
 
+    # 1. Reject past dates
+    today = date.today()
+    if payload.date < today:
+        raise HTTPException(status_code=400, detail="Appointment date must be today or in the future")
+
+    # 2. Check specialist exists
     specialist_resp = (
         sb.table("specialists")
         .select("*")
@@ -29,11 +36,12 @@ def create_appointment(
 
     specialist = specialist_resp.data[0]
 
+    # 3. Check if slot exists and is free
     slot_resp = (
         sb.table("specialist_availability")
         .select("*")
         .eq("specialist_id", payload.specialist_id)
-        .eq("available_date", payload.date)
+        .eq("available_date", str(payload.date))
         .eq("time_slot", payload.time)
         .eq("is_booked", False)
         .limit(1)
@@ -43,10 +51,11 @@ def create_appointment(
     if not slot_resp.data:
         raise HTTPException(status_code=409, detail="Selected time slot is not available")
 
+    # 4. Insert appointment
     appointment_data = {
         "user_id": user_id,
         "specialist_id": payload.specialist_id,
-        "appointment_date": payload.date,
+        "appointment_date": str(payload.date),
         "appointment_time": payload.time,
         "location": payload.location,
         "status": "confirmed"
@@ -57,9 +66,13 @@ def create_appointment(
     if not getattr(created, "data", None):
         raise HTTPException(status_code=500, detail="Failed to create appointment")
 
+    # 5. Mark slot as booked
     sb.table("specialist_availability").update({
         "is_booked": True
-    }).eq("specialist_id", payload.specialist_id).eq("available_date", payload.date).eq("time_slot", payload.time).execute()
+    }).eq("specialist_id", payload.specialist_id) \
+     .eq("available_date", str(payload.date)) \
+     .eq("time_slot", payload.time) \
+     .execute()
 
     row = created.data[0]
 

@@ -9,8 +9,8 @@ key = os.environ["SUPABASE_ANON_KEY"]
 
 supabase = create_client(url, key)
 
-email =  "testuser1@demo.com" #"testuser2@demo.com"  "provider1@demo.com"  #provider3@demo.com 
-password = "12345678" #Provider3 #User12345678
+email =  "testuser2@demo.com"     #provider3@demo.com #testprovider2@demo.com
+password = "User12345678" # (#password for provider 3 : Provider3)  (#password for provider 2 : Provider12345678)
 
 res = supabase.auth.sign_in_with_password({
     "email": email,
