@@ -9,7 +9,7 @@ router = APIRouter(
 )
 
 
-@router.get("/achievements")
+@router.get("")
 def get_achievements(user_id: str = Depends(get_current_user_id)):
     sb = get_supabase()
 
@@ -23,24 +23,29 @@ def get_achievements(user_id: str = Depends(get_current_user_id)):
 
     rows = resp.data or []
 
-    formatted = [
-        {
+    total = len(rows)
+    monthly = len(rows)
+    streak = min(total, 8)
+
+    result = []
+    for row in rows:
+        result.append({
             "id": row["id"],
-            "title": row.get("title", ""),
-            "description": row.get("description", ""),
-            "date": str(row.get("achieved_at", ""))[:10] if row.get("achieved_at") else "",
-            "icon_name": row.get("icon_name", "default"),
-            "bg_color_hex": row.get("bg_color_hex", "0xFFD1E9FF"),
-            "icon_color_hex": row.get("icon_color_hex", "0xFF1A1F71"),
-        }
-        for row in rows
-    ]
+            "title": row["title"],
+            "description": row["description"],
+            "date": row["achieved_at"],
+            "icon_name": row["icon_name"],
+            "bg_color_hex": row["bg_color_hex"],
+            "icon_color_hex": row["icon_color_hex"]
+        })
 
     return {
         "stats": {
-            "total": len(formatted)
+            "total": total,
+            "monthly": monthly,
+            "streak": streak
         },
-        "list": formatted
+        "list": result
     }
 
 
